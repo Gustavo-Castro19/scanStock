@@ -26,9 +26,15 @@
     "plugins": [
       "expo-router",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "O ScanStock precisa de acesso à câmera para escanear livros, códigos de barras e itens de estoque."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0F7A6B",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
