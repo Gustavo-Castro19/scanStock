@@ -32,6 +32,14 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "O ScanStock precisa acessar suas fotos para adicioná-las aos itens do acervo.",
+          "cameraPermission": "O ScanStock precisa acessar a câmera para fotografar itens do acervo.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#0F7A6B",

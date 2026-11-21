@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { File, Paths } from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useCatalog } from '@/context/CatalogContext';
 import { CollectionType, ItemStatus } from '@/types/catalog';
@@ -41,7 +45,7 @@ export default function NewItemScreen() {
   const [status, setStatus] = useState<ItemStatus>(
     collection === 'Livros' ? 'Na estante' : collection === 'Estoque' ? 'Estoque regular' : 'Disponível'
   );
-  const [photoIndex, setPhotoIndex] = useState(1);
+  const [photos, setPhotos] = useState<string[]>([]);
 
   const collections: CollectionType[] = ['Livros', 'Laboratório', 'Estoque'];
 
@@ -53,6 +57,47 @@ export default function NewItemScreen() {
       return ['Estoque regular', 'Estoque baixo'];
     }
     return ['Disponível', 'Emprestado', 'Manutenção'];
+  };
+
+  const savePhoto = async (uri: string, fileName?: string | null) => {
+    const extension = fileName?.split('.').pop()?.toLowerCase() || uri.match(/\.([a-z0-9]+)(?:\?|$)/i)?.[1] || 'jpg';
+    const destination = new File(Paths.document, `item-${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`);
+    await new File(uri).copy(destination);
+    return destination.uri;
+  };
+
+  const addPickedPhotos = async (assets: ImagePicker.ImagePickerAsset[]) => {
+    try {
+      const savedPhotos = await Promise.all(assets.map((asset) => savePhoto(asset.uri, asset.fileName)));
+      setPhotos((current) => [...current, ...savedPhotos].slice(0, 3));
+    } catch {
+      Alert.alert('Não foi possível salvar a foto', 'Tente escolher ou tirar a foto novamente.');
+    }
+  };
+
+  const handleChooseFromGallery = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permissão necessária', 'Permita o acesso à galeria para adicionar fotos.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: 3 - photos.length,
+      quality: 0.8,
+    });
+    if (!result.canceled) await addPickedPhotos(result.assets);
+  };
+
+  const handleTakePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permissão necessária', 'Permita o acesso à câmera para tirar uma foto.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    if (!result.canceled) await addPickedPhotos(result.assets);
   };
 
   const handleSave = async () => {
@@ -89,6 +134,7 @@ export default function NewItemScreen() {
         statusBadge,
         statusType,
         avatarColor,
+        photos,
       });
       router.replace('/');
     } catch {
@@ -114,18 +160,35 @@ export default function NewItemScreen() {
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* PHOTO BANNER matching prototype */}
-          <View style={styles.photoBanner}>
-            <View style={styles.cameraIconContainer}>
-              <View style={styles.lensOuter}>
-                <View style={styles.lensInner} />
+          <View style={styles.photoSection}>
+            <View style={styles.photoBanner}>
+              {photos.length ? (
+                <Image source={{ uri: photos[photos.length - 1] }} style={StyleSheet.absoluteFill} contentFit="cover" />
+              ) : (
+                <View style={styles.cameraIconContainer}>
+                  <View style={styles.lensOuter}><View style={styles.lensInner} /></View>
+                </View>
+              )}
+              <View style={styles.photoCountBadge}>
+                <Text style={styles.photoCountText}>{photos.length} de 3 fotos</Text>
               </View>
             </View>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setPhotoIndex((p) => (p % 3) + 1)}
-              style={styles.photoCountBadge}>
-              <Text style={styles.photoCountText}>Foto {photoIndex} de 3</Text>
-            </TouchableOpacity>
+            <View style={styles.photoActions}>
+              <TouchableOpacity disabled={photos.length >= 3} onPress={handleChooseFromGallery} style={styles.photoAction}>
+                <Feather name="image" size={17} color={Palette.primary} />
+                <Text style={styles.photoActionText}>Galeria</Text>
+              </TouchableOpacity>
+              <TouchableOpacity disabled={photos.length >= 3} onPress={handleTakePhoto} style={styles.photoAction}>
+                <Feather name="camera" size={17} color={Palette.primary} />
+                <Text style={styles.photoActionText}>Tirar foto</Text>
+              </TouchableOpacity>
+              {photos.length > 0 && (
+                <TouchableOpacity onPress={() => setPhotos((current) => current.slice(0, -1))} style={styles.photoAction}>
+                  <Feather name="trash-2" size={17} color={Palette.dangerText} />
+                  <Text style={[styles.photoActionText, { color: Palette.dangerText }]}>Remover</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* FORM FIELDS */}
@@ -315,6 +378,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     overflow: 'hidden',
+  },
+  photoSection: {
+    gap: 10,
+  },
+  photoActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  photoAction: {
+    minHeight: 40,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  photoActionText: {
+    color: Palette.primary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   cameraIconContainer: {
     width: 120,

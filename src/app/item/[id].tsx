@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import { Image } from 'expo-image';
 import {
   Alert,
   Modal,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useCatalog } from '@/context/CatalogContext';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -119,6 +120,7 @@ export default function ItemDetailScreen() {
       <View style={styles.container}>
         {/* PHOTO BANNER matching prototype */}
         <View style={[styles.photoHeader, { backgroundColor: '#B9C5BF' }]}>
+          {item.photos?.[0] && <Image source={{ uri: item.photos[0] }} style={StyleSheet.absoluteFill} contentFit="cover" />}
           <TouchableOpacity
             style={styles.floatingHeaderBtnLeft}
             onPress={() => router.back()}
@@ -134,14 +136,12 @@ export default function ItemDetailScreen() {
           </TouchableOpacity>
 
           {/* Visual camera/item mock */}
-          <View style={[styles.itemMockAvatar, { backgroundColor: item.avatarColor }]}>
-            <View style={styles.lensOuter}>
-              <View style={styles.lensInner} />
-            </View>
-          </View>
+          {!item.photos?.[0] && <View style={[styles.itemMockAvatar, { backgroundColor: item.avatarColor }]}>
+            <View style={styles.lensOuter}><View style={styles.lensInner} /></View>
+          </View>}
 
           <View style={styles.photoCountBadge}>
-            <Text style={styles.photoCountText}>1 / 3</Text>
+            <Text style={styles.photoCountText}>{item.photos?.length || 0} / 3</Text>
           </View>
         </View>
 

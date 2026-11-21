@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 import { CatalogItem } from '@/types/catalog';
 import { Palette } from '@/constants/theme';
@@ -30,7 +31,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
       onPress={onPress}
       style={styles.container}>
       <View style={[styles.avatar, { backgroundColor: item.avatarColor || Palette.livros }]}>
-        {getCategoryIcon()}
+        {item.photos?.[0] ? <Image source={{ uri: item.photos[0] }} style={styles.avatarImage} contentFit="cover" /> : getCategoryIcon()}
       </View>
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={1}>
@@ -60,6 +61,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
   },
   content: {
     flex: 1,
